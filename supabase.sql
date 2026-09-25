@@ -3,6 +3,7 @@
 
 create table if not exists public.profiles(
  id uuid primary key references auth.users(id) on delete cascade,
+ username text unique,
  full_name text,
  dob date,
  grade int check(grade between 5 and 11),
@@ -47,8 +48,8 @@ on conflict(name) do nothing;
 create or replace function public.handle_new_user() returns trigger
 language plpgsql security definer set search_path=public as $$
 begin
- insert into public.profiles(id,full_name,dob,grade,address,school,whatsapp,phone)
- values(new.id,new.raw_user_meta_data->>'full_name',nullif(new.raw_user_meta_data->>'dob','')::date,nullif(new.raw_user_meta_data->>'grade','')::int,new.raw_user_meta_data->>'address',new.raw_user_meta_data->>'school',new.raw_user_meta_data->>'whatsapp',new.raw_user_meta_data->>'phone');
+ insert into public.profiles(id,username,full_name,dob,grade,address,school,whatsapp,phone)
+ values(new.id,new.raw_user_meta_data->>'username',new.raw_user_meta_data->>'full_name',nullif(new.raw_user_meta_data->>'dob','')::date,nullif(new.raw_user_meta_data->>'grade','')::int,new.raw_user_meta_data->>'address',new.raw_user_meta_data->>'school',new.raw_user_meta_data->>'whatsapp',new.raw_user_meta_data->>'phone');
  return new;
 end;$$;
 drop trigger if exists on_auth_user_created on auth.users;
@@ -58,6 +59,10 @@ create or replace function public.is_admin() returns boolean language sql stable
  select exists(select 1 from public.profiles where id=auth.uid() and role='admin');
 $$;
 
+
+-- Username/password authentication (no user-facing email). The app uses an internal synthetic auth email.
+alter table public.profiles add column if not exists username text;
+create unique index if not exists profiles_username_unique on public.profiles(lower(username)) where username is not null;
 
 -- Optional profile pictures. Registration does not require a photo.
 alter table public.profiles add column if not exists avatar_url text;
@@ -91,7 +96,8 @@ alter table public.class_months enable row level security;
 create or replace function public.protect_profile_fields() returns trigger
 language plpgsql security definer set search_path=public as $$
 begin
-  if not public.is_admin() then
+  -- SQL Editor/migration runs do not have auth.uid(); allow privileged database administration.
+  if auth.uid() is not null and not public.is_admin() then
     new.full_name := old.full_name;
     new.dob := old.dob;
     new.role := old.role;
@@ -187,6 +193,8 @@ create policy months_insert on public.class_months for insert to authenticated w
 create policy months_update on public.class_months for update to authenticated using(public.is_admin()) with check(public.is_admin());
 create policy months_delete on public.class_months for delete to authenticated using(public.is_admin());
 
--- Make yourself admin after registering:
--- update public.profiles set role='admin' where id=(select id from auth.users where email='YOUR_ADMIN_EMAIL');
+-- Make the first admin after registering (run this in Supabase SQL Editor):
+-- update public.profiles set role='admin' where lower(username)=lower('YOUR_USERNAME');
+-- Verify:
+-- select username, role from public.profiles where lower(username)=lower('YOUR_USERNAME');
 -- IMPORTANT: use the Supabase Publishable/anon key in config.js, never service_role/secret.

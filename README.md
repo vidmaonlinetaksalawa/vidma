@@ -24,3 +24,28 @@ For a static HTML/JS site hosted on GitHub Pages, the Supabase Publishable/anon 
 - The included SQL creates the bucket and Storage policies. Run the included `supabase.sql` once after this update.
 - Maximum image size enforced by the app: **5 MB**.
 - A **Remove** button is shown after a picture has been uploaded.
+
+
+## Username + 6-digit password login
+- Registration/Login no longer asks the user for an email.
+- Username: 3–30 characters using English letters, numbers, or `_`.
+- Password: exactly 6 numeric digits.
+- The password is hidden by default and can be shown/hidden with the Show/Hide button.
+- Supabase Dashboard → Authentication → Providers → Email → turn **Confirm email** OFF for this username-only setup; the app uses an internal synthetic auth email and users do not see or enter an email.
+- Existing accounts created with real email addresses are legacy accounts and are not automatically converted to username accounts by this ZIP.
+
+
+## First Admin Setup
+After registering the account, open Supabase SQL Editor and run:
+
+```sql
+UPDATE public.profiles
+SET role = 'admin'
+WHERE LOWER(username) = LOWER('YOUR_USERNAME');
+
+SELECT username, role
+FROM public.profiles
+WHERE LOWER(username) = LOWER('YOUR_USERNAME');
+```
+
+The database trigger allows privileged SQL Editor/migration runs to bootstrap the first admin, while normal authenticated students cannot change their own role. After the role shows `admin`, log out and log in again.
