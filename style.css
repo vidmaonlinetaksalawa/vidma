@@ -121,3 +121,15 @@ html.dark .passwordToggle:focus-visible{outline-color:#aeb8ff;}
 }
 
 html.dark .side{border-top-color:#2a3043}
+
+/* Admin section View More / View Less controls */
+.adminSectionHead{align-items:center;gap:12px}
+.adminSectionHead>div:first-child{min-width:0}
+.adminSectionActions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.adminSectionHead .btn,
+.adminSectionHead .primary{white-space:nowrap}
+@media (max-width:700px){
+  .adminSectionHead{align-items:flex-start;flex-wrap:wrap}
+  .adminSectionActions{width:100%}
+  .adminSectionActions .btn,.adminSectionActions .primary{flex:1 1 auto}
+}
