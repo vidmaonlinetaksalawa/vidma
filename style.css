@@ -27,6 +27,7 @@ html.dark .empty{color:#9da5b8}
 html.dark .modal{background:#000a}
 html.dark .badge{background:#252b48;color:#aeb6ff}
 html.dark .head{color:#e8eaf0}
+html.dark .note{background:#252b38;color:#e8eaf0;border:1px solid #343b50}
 #themeToggle{min-width:92px}
 @media(max-width:700px){#themeToggle{min-width:auto}}
 
