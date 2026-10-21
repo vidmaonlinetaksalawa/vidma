@@ -140,3 +140,32 @@ html.dark .side{border-top-color:#2a3043}
 html.dark .statCard{background:#171b2b;border-color:#2a3043}html.dark .statCard small{color:#a5aec2}html.dark .statIcon{background:#252b48}html.dark .profileAvatarLarge .avatar{border-color:#252b38}
 @media(max-width:700px){.dashboardHero{align-items:flex-start;flex-direction:column;gap:16px;padding:19px}.heroAction{width:100%}.dashboardStats{grid-template-columns:1fr;gap:9px;margin-bottom:20px}.statCard{padding:13px 15px}.statCard strong{font-size:23px}.dashboardStats .statCard{min-height:76px}.profileCard{padding:12px}.profilePictureBox{gap:14px}.profilePictureBox>div:last-child{width:100%}.profilePictureBox input[type=file]{font-size:13px}.recordingThumb,.thumbFallback{border-radius:10px}}
 @media(min-width:701px){.recordingCard{display:flex;flex-direction:column}.recordingCard .videoThumb{margin-top:auto;margin-bottom:12px}.recordingCard .primary{margin-top:0}}
+
+
+/* Recordings: month tiles and in-page video detail */
+.monthBoxGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:18px}
+.monthBox{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:9px;min-width:0;min-height:155px;padding:22px;text-align:left;color:var(--text,#182033);background:var(--card-bg,#fff);border:1px solid var(--border,#e8ebf0);border-radius:18px;box-shadow:0 8px 25px #00000008;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.monthBox:hover{transform:translateY(-3px);border-color:#8d91ff;box-shadow:0 14px 30px #5865f21c}
+.monthBox:focus-visible{outline:3px solid #818cf8;outline-offset:3px}
+.monthBoxIcon{display:grid;place-items:center;width:43px;height:43px;border-radius:13px;background:#eef0ff;font-size:22px}
+.monthBoxName{font-size:19px;font-weight:800;overflow-wrap:anywhere}
+.monthBoxCount{color:#737c8f;font-size:13px}
+.monthBoxArrow{position:absolute;right:18px;top:20px;color:#5865f2;font-size:20px}
+.recordingPageHead{align-items:flex-start}
+.recordingPageHead h2{margin-top:12px}
+.backRecordingBtn{margin-bottom:8px}
+.recordingDetail{max-width:1050px;margin:0 auto}
+.recordingDetailHead{align-items:flex-start;gap:14px;margin-top:12px}
+.recordingDetailHead h2{overflow-wrap:anywhere}
+.recordingPlayer{width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:16px;background:#101522;box-shadow:0 14px 35px #00000018}
+.recordingPlayer iframe{display:block;width:100%;height:100%;border:0}
+.playerFallback{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;width:100%;height:100%;padding:20px;color:#fff;text-align:center}
+.playerFallback .primary{display:inline-flex;align-items:center;text-decoration:none}
+.recordingInfo{margin-top:16px}
+.recordingInfo .btn{display:inline-flex;margin-top:6px;text-decoration:none}
+html.dark .monthBox{color:#e8eaf0;background:#171b2b;border-color:#2a3043}
+html.dark .monthBox:hover{border-color:#737bff}
+html.dark .monthBoxIcon{background:#252b48}
+html.dark .monthBoxCount{color:#a5aec2}
+@media(max-width:900px){.monthBoxGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.monthBoxGrid{grid-template-columns:1fr;gap:11px}.monthBox{min-height:125px;padding:17px;border-radius:15px}.recordingDetailHead{flex-direction:column}.recordingPlayer{border-radius:11px}.recordingPageHead{display:block}}

@@ -176,7 +176,9 @@ function layout(){
  let nav=[["home","🏠 Dashboard"],["times","🗓️ Timetable"],["fees","💰 Class Fees"],["rec","🎥 Recordings"],["profile","👤 Profile"]];if(S.admin)nav.push(["admin","⚙️ Admin"]);
  A.innerHTML=`<header class="top"><div class="top-brand"><img class="top-logo" src="assets/logo.png" alt="VIDMA ONLINE TAKSALAWA"><b>VIDMA ONLINE TAKSALAWA</b></div><div class="actions"><button class="btn" id="themeToggle" onclick="toggleTheme()">🌙 <span>Dark</span></button><button class="btn profileTopBtn" onclick="page('profile')">${avatarHtml(S.p?.avatar_url,S.p?.full_name||"Profile")} <span>Profile</span></button><button class="btn" onclick="out()">↪ <span>Logout</span></button></div></header><div class="layout"><aside class="side">${nav.map(n=>`<button data-n="${n[0]}" onclick="page('${n[0]}')">${n[1]}</button>`).join("")}</aside><main class="content" id="C"></main></div>`;render();if(S.warnings.length)showDataError(S.warnings.join(" | "));
 }
-window.page=x=>{S.page=x;render()};
+let recordingMonthView=null;
+let recordingVideoView=null;
+window.page=x=>{recordingMonthView=null;recordingVideoView=null;S.page=x;render()};
 function render(){document.querySelectorAll("[data-n]").forEach(x=>x.classList.toggle("on",x.dataset.n===S.page));const c=L("C");if(!c)return;if(S.page==="home")home(c);if(S.page==="times")times(c);if(S.page==="fees")fees(c);if(S.page==="rec")recs(c);if(S.page==="profile")profile(c);if(S.page==="admin")admin(c)}
 function visibleRecordings(){
  if(S.admin) return S.recordings;
@@ -201,15 +203,56 @@ function home(c){
  <div class="cards">${subjects.map(x=>`<div class="card subject" onclick="${x.id!=null?`sub(${x.id})`:`page('rec')`}"><h3>${esc(x.name)}</h3><div>${x.count} recording${x.count===1?'':'s'} • View →</div></div>`).join("")||'<div class="card empty">No assigned or free recordings yet.</div>'}</div>
  ${latest.length?`<div class="head" style="margin-top:22px"><h2>Latest Recordings</h2></div><div class="cards">${latest.map(x=>`<div class="card recordingCard"><h3>${esc(x.title||x.subject_name||"Class Recording")} ${x.is_free?`<span class="badge freeBadge">FREE</span>`:""}</h3><div>${esc(x.subject_name||"")} ${x.grade?`• Grade ${x.grade}`:""}</div><small>${esc(x.class_date||"")} ${x.month?`• ${esc(x.month)}`:""}</small><div class="videoThumb">${recordingThumb(x)}</div><button class="primary wide" type="button" onclick="watchRecordingById(${x.id})">▶ Watch Recording</button></div>`).join("")}</div>`:''}`;
 }
-window.sub=id=>{S.page="rec";render();recs(L("C"),id)};
+window.sub=id=>{recordingMonthView=null;recordingVideoView=null;S.page="rec";render()};
 function times(c){c.innerHTML=`<div class="head"><h2>🗓️ Timetable</h2></div><div class="tablebox"><table class="table"><tr><th>Subject</th><th>Grade</th><th>Day</th><th>Time</th></tr>${S.times.map(x=>`<tr><td>${esc(x.subject||x.subject_name)}</td><td>${x.grade||"-"}</td><td>${esc(x.day)}</td><td>${esc(x.time)}</td></tr>`).join("")||'<tr><td colspan="4" class="empty">No data</td></tr>'}</table></div>`}
 function fees(c){c.innerHTML=`<div class="head"><h2>💰 Class Fees</h2></div><div class="cards">${S.fees.map(x=>`<div class="card"><span class="badge">${esc(x.subject_name||"Subject not set")}</span><h2>Rs. ${esc(x.amount)}</h2><div>Grade ${x.grade}</div>${x.note?`<div class="note">📝 ${esc(x.note)}</div>`:""}</div>`).join("")||'<div class="card empty">No data</div>'}</div>`}
 function ytId(url){try{const u=new URL(String(url||""),location.href);const host=u.hostname.toLowerCase().replace(/^www\./,"");let id=u.searchParams.get("v");if(!id&&["youtu.be","m.youtu.be"].includes(host))id=u.pathname.split("/").filter(Boolean)[0];if(!id&&["youtube.com","m.youtube.com","youtube-nocookie.com"].includes(host)){const parts=u.pathname.split("/").filter(Boolean);const key=parts.findIndex(x=>["embed","shorts","live","v"].includes(x));if(key>=0)id=parts[key+1]}return id&&/^[a-zA-Z0-9_-]{6,20}$/.test(id)?id:null}catch{return null}}
 function ytEmbed(url){const id=ytId(url);return id?`https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?rel=0&playsinline=1`:String(url||"")}
-function recordingThumb(x){const id=ytId(x.youtube_url);if(!id)return `<button class="thumbFallback" type="button" onclick="watchRecordingById(${Number(x.id)})"><span>▶</span><b>Watch recording</b><small>Preview unavailable</small></button>`;return `<button class="recordingThumb" type="button" onclick="watchRecordingById(${Number(x.id)})" aria-label="Watch ${esc(x.title||x.subject_name||"recording")}"><img src="https://i.ytimg.com/vi/${encodeURIComponent(id)}/hqdefault.jpg" alt="${esc(x.title||x.subject_name||"Recording thumbnail")}" loading="lazy" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${encodeURIComponent(id)}/mqdefault.jpg'"><span class="thumbPlay">▶</span><span class="thumbLabel">WATCH RECORDING</span></button>`}
+function recordingThumb(x){const id=ytId(x.youtube_url);if(!id)return `<button class="thumbFallback" type="button" onclick="openRecordingDetail(${Number(x.id)})"><span>▶</span><b>Watch recording</b><small>Preview unavailable</small></button>`;return `<button class="recordingThumb" type="button" onclick="openRecordingDetail(${Number(x.id)})" aria-label="Watch ${esc(x.title||x.subject_name||"recording")}"><img src="https://i.ytimg.com/vi/${encodeURIComponent(id)}/hqdefault.jpg" alt="${esc(x.title||x.subject_name||"Recording thumbnail")}" loading="lazy" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${encodeURIComponent(id)}/mqdefault.jpg'"><span class="thumbPlay">▶</span><span class="thumbLabel">WATCH RECORDING</span></button>`}
 window.watchRecording=x=>{modal(`▶ ${esc(x.title||x.subject_name||"Class Recording")}`,`<div class="videoWrap"><iframe src="${esc(ytEmbed(x.youtube_url))}" title="${esc(x.title||"YouTube recording")}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div><div style="margin-top:10px"><a class="btn" target="_blank" rel="noopener" href="${esc(x.youtube_url)}">Watch on YouTube ↗</a></div>`)};
 window.watchRecordingById=id=>{const x=S.recordings.find(r=>String(r.id)===String(id));if(x)watchRecording(x)};
-function recs(c,id){let base=visibleRecordings();let selected=id||"";c.innerHTML=`<div class="head"><h2>🎥 Class Recordings</h2></div><div class="card filterCard"><div class="grid3"><div class="field"><label>Grade</label><select id="rfGrade"><option value="">All Grades</option>${grades.map(g=>`<option value="${g}">${g}</option>`).join("")}</select></div><div class="field"><label>Month</label><select id="rfMonth"><option value="">All Months</option>${months.map(m=>`<option value="${m}">${m}</option>`).join("")}</select></div><div class="field"><label>Subject</label><select id="rfSubject"><option value="">සියලු Subjectයන්</option>${S.subjects.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join("")}</select></div></div><button class="btn" id="clearRF">Clear</button></div><div id="recordingList"></div>`;if(selected)L("rfSubject").value=String(selected);const draw=()=>{let g=L("rfGrade").value,m=L("rfMonth").value,subid=L("rfSubject").value;let a=base.filter(x=>(!g||String(x.grade)===g)&&(!m||x.month===m)&&(!subid||String(x.subject_id)===subid));let by={};a.forEach(x=>(by[x.month||"Other"]??=[]).push(x));L("recordingList").innerHTML=Object.entries(by).map(([mth,aa])=>`<h2>${esc(mth)}</h2><div class="cards">${aa.map(x=>`<div class="card recordingCard"><h3>${esc(x.title||x.subject_name||"Class Recording")} ${x.is_free?`<span class="badge freeBadge">FREE</span>`:""}</h3><div>${esc(x.subject_name||"")} ${x.grade?`• Grade ${x.grade}`:""}</div><small>${esc(x.class_date||"")}</small><div class="videoThumb">${recordingThumb(x)}</div><button class="primary wide" type="button" onclick='watchRecordingById(${x.id})'>▶ Watch Recording</button></div>`).join("")}</div>`).join("")||'<div class="card empty">ඔබ තෝරාගත් Grade / Month / Subject සඳහා recordings No data.</div>'};["rfGrade","rfMonth","rfSubject"].forEach(k=>L(k).onchange=draw);L("clearRF").onclick=()=>{L("rfGrade").value="";L("rfMonth").value="";L("rfSubject").value="";draw()};draw()}
+function recordingMonthName(r){
+ const value=String(r.month||"").trim();
+ if(value)return value;
+ if(r.class_date){const d=new Date(`${r.class_date}T00:00:00`);if(!Number.isNaN(d.getTime()))return months[d.getMonth()]+" "+d.getFullYear();}
+ return "Other";
+}
+function openRecordingDetail(id){
+ const row=S.recordings.find(r=>String(r.id)===String(id));
+ if(!row)return;
+ if(!S.admin&&!visibleRecordings().some(r=>String(r.id)===String(id)))return alert("මෙම recording එක බැලීමට අවසර නැහැ.");
+ S.page="rec";recordingVideoView=String(id);render();
+}
+window.openRecordingDetail=openRecordingDetail;
+window.backToRecordingMonths=()=>{recordingVideoView=null;render()};
+window.backToRecordingList=()=>{recordingVideoView=null;recordingMonthView=null;render()};
+function recs(c){
+ const base=visibleRecordings();
+ if(recordingVideoView){
+  const x=base.find(r=>String(r.id)===String(recordingVideoView));
+  if(!x){recordingVideoView=null;}
+  else{
+   const id=ytId(x.youtube_url),src=ytEmbed(x.youtube_url);
+   c.innerHTML=`<div class="recordingDetail"><button class="btn backRecordingBtn" type="button" onclick="backToRecordingMonths()">← ${esc(recordingMonthView||"Months වෙත ආපසු")}</button><div class="head recordingDetailHead"><div><h2>${esc(x.title||x.subject_name||"Class Recording")}</h2><p class="muted">${esc(x.subject_name||"")}${x.grade?` · Grade ${esc(x.grade)}`:""}${x.month?` · ${esc(x.month)}`:""}${x.class_date?` · ${esc(x.class_date)}`:""}</p></div>${x.is_free?'<span class="badge freeBadge">FREE</span>':""}</div><div class="recordingPlayer">${src?`<iframe src="${esc(src)}" title="${esc(x.title||"Class Recording")}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`:`<div class="playerFallback"><p>මෙම recording එක embed කර පෙන්විය නොහැක.</p><a class="primary" href="${esc(x.youtube_url||"#")}" target="_blank" rel="noopener">▶ Recording එක විවෘත කරන්න</a></div>`}</div><div class="card recordingInfo"><h3>${esc(x.title||x.subject_name||"Class Recording")}</h3>${x.description?`<p>${esc(x.description)}</p>`:""}<a class="btn" href="${esc(x.youtube_url||"#")}" target="_blank" rel="noopener">YouTube එකේ බලන්න ↗</a></div></div>`;
+   return;
+  }
+ }
+ if(recordingMonthView){
+  const chosen=base.filter(r=>recordingMonthName(r)===recordingMonthView);
+  c.innerHTML=`<div class="head recordingPageHead"><div><button class="btn backRecordingBtn" type="button" onclick="backToRecordingList()">← සියලු මාස</button><h2>🎥 ${esc(recordingMonthView)} Recordings</h2><p class="muted">${chosen.length} recordings</p></div></div><div class="cards recordingMonthVideos">${chosen.map(x=>`<div class="card recordingCard"><h3>${esc(x.title||x.subject_name||"Class Recording")} ${x.is_free?'<span class="badge freeBadge">FREE</span>':""}</h3><div>${esc(x.subject_name||"")} ${x.grade?`• Grade ${esc(x.grade)}`:""}</div><small>${esc(x.class_date||"")}</small><div class="videoThumb">${recordingThumb(x)}</div><button class="primary wide" type="button" onclick="openRecordingDetail(${Number(x.id)})">▶ Watch Recording</button></div>`).join("")||'<div class="card empty">මෙම මාසයට recordings නැහැ.</div>'}</div>`;
+  return;
+ }
+ const grouped=new Map();
+ base.forEach(r=>{const key=recordingMonthName(r);if(!grouped.has(key))grouped.set(key,[]);grouped.get(key).push(r)});
+ const monthOrder=new Map(months.map((m,i)=>[m.toLowerCase(),i]));
+ const entries=[...grouped.entries()].sort((a,b)=>{
+  const ai=monthOrder.has(a[0].toLowerCase())?monthOrder.get(a[0].toLowerCase()):99;
+  const bi=monthOrder.has(b[0].toLowerCase())?monthOrder.get(b[0].toLowerCase()):99;
+  return ai-bi||a[0].localeCompare(b[0]);
+ });
+ c.innerHTML=`<div class="head"><div><h2>🎥 Class Recordings</h2><p class="muted">ඔබට අවශ්‍ය මාසය තෝරලා ඒ මාසයේ recordings බලන්න.</p></div></div><div class="monthBoxGrid">${entries.map(([name,rows],i)=>`<button class="monthBox" type="button" onclick='openRecordingMonth(${JSON.stringify(name).replace(/'/g,"&#39;")})'><span class="monthBoxIcon">📅</span><span class="monthBoxName">${esc(name)}</span><span class="monthBoxCount">${rows.length} recording${rows.length===1?"":"s"}</span><span class="monthBoxArrow">↗</span></button>`).join("")}</div>${entries.length?"":'<div class="card empty">දැනට බලන්න recordings නැහැ.</div>'}`;
+}
+window.openRecordingMonth=name=>{recordingMonthView=String(name);recordingVideoView=null;render()};
 function profile(c){
  let p=S.p||{};
  c.innerHTML=`<div class="head"><h2>👤 Profile</h2></div><div class="card profileCard">
@@ -324,6 +367,7 @@ window.out=async()=>{
     for(const k of Object.keys(localStorage)) if(k.startsWith("sb-") && k.includes(ref)) localStorage.removeItem(k);
     for(const k of Object.keys(sessionStorage)) if(k.startsWith("sb-") && k.includes(ref)) sessionStorage.removeItem(k);
   }catch(e){}
+  recordingMonthView=null;recordingVideoView=null;
   S={page:"home",p:null,admin:false,subjects:[],recordings:[],times:[],fees:[],students:[],grades:[],months:[],access:[],warnings:[]};
   bootDone = false;
   auth("Logged out. You can login again now.");
